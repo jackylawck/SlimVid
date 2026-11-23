@@ -19,6 +19,7 @@ import {
   scanMp4TopLevelBoxes,
   feedMp4HeadersToMp4Box,
   feedMp4MdatChunks,
+  resolveAacAudioConfig,
 } from './mp4-scanner.js';
 
 let activeJobId = null;
@@ -38,33 +39,6 @@ function throwIfAborted(signal) {
   if (signal?.aborted) {
     throw createStageError('壓縮已中止', PIPELINE_STAGE.ABORT, 'ABORTED');
   }
-}
-
-function findDescriptorByTag(node, tag, depth = 0) {
-  if (!node || typeof node !== 'object' || depth > 8) return null;
-  if (node.tag === tag) return node;
-  if (Array.isArray(node.descs)) {
-    for (const child of node.descs) {
-      const found = findDescriptorByTag(child, tag, depth + 1);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-function extractAudioSpecificConfig(audioTrak) {
-  const entries = audioTrak?.mdia?.minf?.stbl?.stsd?.entries || [];
-  for (const entry of entries) {
-    const esd = entry?.esds?.esd;
-    if (!esd) continue;
-
-    const decSpecific = findDescriptorByTag(esd, 0x05);
-    const raw = decSpecific?.data;
-    if (raw && raw.length >= 2) {
-      return raw instanceof Uint8Array ? raw : new Uint8Array(raw);
-    }
-  }
-  return null;
 }
 
 function extractVideoDescription(MP4Box, videoTrak) {
@@ -238,6 +212,7 @@ async function runCompressionJob(jobId, { file, plan: userOptions, capabilities,
     let videoTrack = null;
     let audioTrack = null;
     let audioDescription = null;
+    let normalizedAudioCodec = null;
     let audioMetaSent = false;
     let globalTsOffsetUs = 0;
 
@@ -274,7 +249,25 @@ async function runCompressionJob(jobId, { file, plan: userOptions, capabilities,
         }
 
         const allAudioTracks = info.audioTracks || [];
-        const aacTrack = allAudioTracks.find((t) => t.codec && t.codec.startsWith('mp4a.40')) || null;
+        let resolvedAacTrack = null;
+        let resolvedAacInfo = null;
+
+        for (const t of allAudioTracks) {
+          if (t.codec === 'mp4a' || (t.codec && t.codec.startsWith('mp4a.40'))) {
+            const trak = mp4boxfile.getTrackById(t.id);
+            const resolved = resolveAacAudioConfig(trak, {
+              codec: t.codec,
+              sampleRate: t.audio?.sample_rate,
+              channelCount: t.audio?.channel_count,
+            });
+            if (resolved.isAac && resolved.description) {
+              resolvedAacTrack = t;
+              resolvedAacInfo = resolved;
+              break;
+            }
+          }
+        }
+
         const apacTrack = allAudioTracks.find((t) => t.codec && t.codec.startsWith('apac')) || null;
         const firstOtherAudio = allAudioTracks[0] || null;
 
@@ -303,17 +296,17 @@ async function runCompressionJob(jobId, { file, plan: userOptions, capabilities,
           rotation,
           estimatedFps,
           hasAudio: allAudioTracks.length > 0,
-          canCopyAudio: Boolean(aacTrack),
+          canCopyAudio: Boolean(resolvedAacTrack),
           videoCodec: videoTrack.codec || null,
-          audioCodec: (aacTrack || firstOtherAudio)?.codec || null,
+          audioCodec: (resolvedAacInfo?.codec || firstOtherAudio?.codec) || null,
         };
 
-        if (aacTrack) {
-          audioTrack = aacTrack;
+        if (resolvedAacTrack && resolvedAacInfo) {
+          audioTrack = resolvedAacTrack;
+          audioDescription = resolvedAacInfo.description;
+          normalizedAudioCodec = resolvedAacInfo.codec;
           const sr = audioTrack.audio?.sample_rate;
           const ch = audioTrack.audio?.channel_count;
-          const audioTrak = mp4boxfile.getTrackById(audioTrack.id);
-          audioDescription = extractAudioSpecificConfig(audioTrak);
 
           if (!audioDescription || !sr || !ch) {
             throw createStageError(
@@ -618,7 +611,7 @@ async function runCompressionJob(jobId, { file, plan: userOptions, capabilities,
         const meta = !audioMetaSent
           ? {
               decoderConfig: {
-                codec: audioTrack.codec,
+                codec: normalizedAudioCodec || audioTrack.codec,
                 sampleRate: audioTrack.audio.sample_rate,
                 numberOfChannels: audioTrack.audio.channel_count,
                 description: audioDescription,
