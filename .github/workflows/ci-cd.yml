@@ -27,8 +27,21 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Verify vendor SHA-256 checksums and untracked files
-        run: npm run vendor:verify
+      - name: Enforce exact dependency versions in package.json
+        run: |
+          if grep -E '"[^"]+":\s*"[\^~*]' package.json; then
+            echo "::error::package.json 不可使用範圍版本符 (^ / ~ / *)！"
+            exit 1
+          fi
+
+      - name: Prepare & verify self-hosted vendor files
+        run: |
+          if [ ! -f vendor/CHECKSUMS.sha256 ]; then
+            echo "vendor/ not committed in repo — building pinned vendor files in CI..."
+            npm install --no-audit --no-fund
+            npm run vendor:sync
+          fi
+          npm run vendor:verify
 
       - name: Verify strict CSP meta tag is first element inside <head>
         run: |
@@ -46,7 +59,7 @@ jobs:
               console.error("CSP must enforce default-src '\''none'\''!");
               process.exit(1);
             }
-            console.log("Strict CSP placement & default-src none verified.");
+            console.log("Strict CSP verified.");
           '
 
       - name: Static security scan (XSS sinks, inline attrs, external CDNs, blob workers)
@@ -71,13 +84,6 @@ jobs:
             exit 1
           fi
 
-      - name: Enforce exact dependency versions in package.json
-        run: |
-          if grep -E '"[^"]+":\s*"[\^~*]' package.json; then
-            echo "::error::package.json 不可使用範圍版本符 (^ / ~ / *)！"
-            exit 1
-          fi
-
       - name: Syntax check all ES modules
         run: npm run syntax:check
 
@@ -99,6 +105,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Ensure self-hosted vendor files exist for deployment
+        run: |
+          if [ ! -f vendor/CHECKSUMS.sha256 ]; then
+            npm install --no-audit --no-fund
+            npm run vendor:sync
+          fi
+          npm run vendor:verify
 
       - name: Assemble clean static site artifact (runtime files only)
         run: |
