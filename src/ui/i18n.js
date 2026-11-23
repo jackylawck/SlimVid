@@ -70,15 +70,15 @@ export const DICTIONARY = Object.freeze({
     riskLowDefault: '已就緒：預計輸出約 {outMB} MB，本地流式拆包記憶體安全。',
 
     downloadBtn: '下載壓縮影片 ({sizeMB} MB)',
-    resultStreamed: '完成！已流式寫入磁碟：{origMB} MB -> {outMB} MB（減少 {savedPct}%，耗時 {sec} 秒，引擎：{engine}）',
-    resultSaved: '完成！{origMB} MB -> {outMB} MB（節省 {savedPct}%，耗時 {sec} 秒，引擎：{engine}）',
+    resultStreamed: '完成！已流式寫入磁碟：{origMB} MB → {outMB} MB（減少 {savedPct}%，耗時 {sec} 秒，引擎：{engine}）',
+    resultSaved: '完成！{origMB} MB → {outMB} MB（節省 {savedPct}%，耗時 {sec} 秒，引擎：{engine}）',
     resultBloatWarn: '完成，但輸出體積 ({outMB} MB) 未比原檔 ({origMB} MB) 更細；原檔可能已高度壓縮，建議保留原檔（耗時 {sec} 秒）。',
     bannerCancelled: '壓縮已中止並釋放記憶體。',
 
     logAbortSent: '已發送中止指令...',
     logStreamFallback: '未啟用流式寫盤，改以瀏覽器記憶體緩衝輸出。',
     logStart: '開始壓縮：{name} ({sizeMB} MB)',
-    logStartTarget: '開始壓縮：{name} ({sizeMB} MB) -> 目標 {targetMB} MB',
+    logStartTarget: '開始壓縮：{name} ({sizeMB} MB) → 目標 {targetMB} MB',
     logError: '錯誤：{msg}',
 
     errNoEngine: '此瀏覽器同時不支援 WebCodecs 與 WebAssembly，無法於本地進行影片壓縮。',
@@ -151,15 +151,15 @@ export const DICTIONARY = Object.freeze({
     riskLowDefault: 'Ready: Estimated output ~{outMB} MB via chunked WebCodecs streaming.',
 
     downloadBtn: 'Download Compressed Video ({sizeMB} MB)',
-    resultStreamed: 'Done! Streamed to disk: {origMB} MB -> {outMB} MB ({savedPct}% smaller, {sec}s, engine: {engine})',
-    resultSaved: 'Done! {origMB} MB -> {outMB} MB ({savedPct}% smaller, {sec}s, engine: {engine})',
+    resultStreamed: 'Done! Streamed to disk: {origMB} MB → {outMB} MB ({savedPct}% smaller, {sec}s, engine: {engine})',
+    resultSaved: 'Done! {origMB} MB → {outMB} MB ({savedPct}% smaller, {sec}s, engine: {engine})',
     resultBloatWarn: 'Done, but output ({outMB} MB) is not smaller than original ({origMB} MB). Your video may already be tightly compressed ({sec}s).',
     bannerCancelled: 'Compression cancelled and memory released.',
 
     logAbortSent: 'Abort signal sent...',
     logStreamFallback: 'Disk streaming skipped; using in-memory output buffer.',
     logStart: 'Starting: {name} ({sizeMB} MB)',
-    logStartTarget: 'Starting: {name} ({sizeMB} MB) -> target {targetMB} MB',
+    logStartTarget: 'Starting: {name} ({sizeMB} MB) → target {targetMB} MB',
     logError: 'Error: {msg}',
 
     errNoEngine: 'This browser supports neither WebCodecs nor WebAssembly for local compression.',
