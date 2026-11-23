@@ -1,0 +1,120 @@
+name: CI & GitHub Pages CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "pages-${{ github.ref }}"
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Security, Integrity & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify vendor SHA-256 checksums and untracked files
+        run: npm run vendor:verify
+
+      - name: Verify strict CSP meta tag is first element inside <head>
+        run: |
+          node -e '
+            const fs = require("fs");
+            const html = fs.readFileSync("index.html", "utf8");
+            const headMatch = html.match(/<head[^>]*>\s*([\s\S]*?)<\/head>/i);
+            if (!headMatch) { console.error("Missing <head>"); process.exit(1); }
+            const firstTag = headMatch[1].trimStart();
+            if (!/^<meta\s+http-equiv="Content-Security-Policy"/i.test(firstTag)) {
+              console.error("CSP meta tag must be the very first element in <head>!");
+              process.exit(1);
+            }
+            if (!firstTag.includes("default-src '\''none'\''")) {
+              console.error("CSP must enforce default-src '\''none'\''!");
+              process.exit(1);
+            }
+            console.log("Strict CSP placement & default-src none verified.");
+          '
+
+      - name: Static security scan (XSS sinks, inline attrs, external CDNs, blob workers)
+        run: |
+          if grep -rnE '(\.(innerHTML|outerHTML)\s*=|\.insertAdjacentHTML\s*\(|document\.write\s*\(|(^|[^.[:alnum:]_])eval\s*\(|new\s+Function\s*\()' src/ index.html; then
+            echo "::error::偵測到危險 DOM XSS / 動態執行寫法！"
+            exit 1
+          fi
+
+          if grep -rnE '\s(on[a-z]+|style)\s*=' index.html; then
+            echo "::error::index.html 不可包含 inline event handler 或 inline style！"
+            exit 1
+          fi
+
+          if grep -rnE 'https?://(cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com|esm\.sh)' src/ index.html; then
+            echo "::error::偵測到外部 CDN 引用，所有依賴必須自託管於 vendor/！"
+            exit 1
+          fi
+
+          if grep -rnE '(new\s+Worker\s*\(\s*URL\.createObjectURL|toBlobURL\s*\()' src/; then
+            echo "::error::偵測到 blob: Worker 或 toBlobURL，會違反嚴格 worker-src '\''self'\''！"
+            exit 1
+          fi
+
+      - name: Enforce exact dependency versions in package.json
+        run: |
+          if grep -E '"[^"]+":\s*"[\^~*]' package.json; then
+            echo "::error::package.json 不可使用範圍版本符 (^ / ~ / *)！"
+            exit 1
+          fi
+
+      - name: Syntax check all ES modules
+        run: npm run syntax:check
+
+      - name: Run all unit tests (protocol, planner, capabilities, i18n)
+        run: npm test
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: ci
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Assemble clean static site artifact (runtime files only)
+        run: |
+          mkdir -p _site
+          cp index.html styles.css _site/
+          cp -r src vendor _site/
+          touch _site/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "_site"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
