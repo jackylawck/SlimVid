@@ -126,17 +126,14 @@ jobs:
           cp -f manifest.webmanifest SlimVid*.png _site/ 2>/dev/null || true
           cp -r src vendor _site/
           touch _site/.nojekyll
-          tar --dereference --hard-dereference --directory "_site" -cvf "${{ runner.temp }}/artifact.tar" .
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Pages artifact (v4)
-        uses: actions/upload-artifact@v4
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          name: github-pages
-          path: ${{ runner.temp }}/artifact.tar
-          retention-days: 1
+          path: "_site"
 
       - name: Deploy to GitHub Pages
         id: deployment
