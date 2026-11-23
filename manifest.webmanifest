@@ -1,0 +1,26 @@
+{
+  "name": "SlimVid · 片纖瘦 — 零上傳影片壓縮器",
+  "short_name": "SlimVid",
+  "description": "100% 瀏覽器本地運算、零伺服器上傳的手機及桌面影片壓縮器。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d1117",
+  "theme_color": "#0969da",
+  "categories": ["utilities", "multimedia"],
+  "icons": [
+    {
+      "src": "./SlimVid192icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./SlimVid512icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
