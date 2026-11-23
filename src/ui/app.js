@@ -9,6 +9,7 @@ import { t, setLang, applyDomTranslations } from './i18n.js';
 
 const ALLOWED_VIDEO_EXTS = new Set(['mp4', 'm4v', 'mov', 'webm', 'mkv']);
 const STREAM_PICKER_OUTPUT_THRESHOLD = 100 * 1024 * 1024;
+const PRESET_CHIP_VALUES = new Set(['20', '25', '50', '100']);
 
 const dom = {
   engineBadge: document.getElementById('engineBadge'),
@@ -19,6 +20,11 @@ const dom = {
   iosFilesTip: document.getElementById('iosFilesTip'),
   riskBanner: document.getElementById('riskBanner'),
   quickSizeGroup: document.getElementById('quickSizeGroup'),
+  targetSizeSlider: document.getElementById('targetSizeSlider'),
+  sliderValueBadge: document.getElementById('sliderValueBadge'),
+  sliderMinLabel: document.getElementById('sliderMinLabel'),
+  sliderMidLabel: document.getElementById('sliderMidLabel'),
+  sliderMaxLabel: document.getElementById('sliderMaxLabel'),
   presetSelect: document.getElementById('presetSelect'),
   targetSizeInput: document.getElementById('targetSizeInput'),
   highPrivacyToggle: document.getElementById('highPrivacyToggle'),
@@ -134,8 +140,81 @@ function renderDownloadButton(blob, originalName) {
 
 function updateActiveChip(sizeMBValue) {
   const targetStr = sizeMBValue ? String(sizeMBValue) : '';
+  const isPresetMatch = PRESET_CHIP_VALUES.has(targetStr);
+  const isCustomActive = Boolean(targetStr) && !isPresetMatch;
+
   for (const btn of dom.quickSizeGroup.querySelectorAll('.chip-btn')) {
-    btn.classList.toggle('is-active', btn.dataset.sizeMb === targetStr);
+    if (btn.dataset.customSize) {
+      btn.classList.toggle('is-active', isCustomActive);
+    } else {
+      btn.classList.toggle('is-active', !isCustomActive && btn.dataset.sizeMb === targetStr);
+    }
+  }
+}
+
+/**
+ * 依據已選影片大小動態調整滑桿上下限，方便手機單手微調
+ */
+function syncSliderBoundsForFile(file) {
+  if (!dom.targetSizeSlider) return;
+
+  let min = 2;
+  let max = 200;
+  let step = 1;
+
+  if (file && file.size > 0) {
+    const fileMB = file.size / (1024 * 1024);
+    if (fileMB <= 10) {
+      min = 1;
+      max = Math.max(2, Math.ceil(fileMB));
+      step = 0.5;
+    } else {
+      min = 2;
+      max = Math.min(2048, Math.max(10, Math.ceil(fileMB)));
+      step = 1;
+    }
+  }
+
+  dom.targetSizeSlider.min = String(min);
+  dom.targetSizeSlider.max = String(max);
+  dom.targetSizeSlider.step = String(step);
+
+  const currentVal = Number(dom.targetSizeSlider.value) || min;
+  const clamped = Math.min(max, Math.max(min, currentVal));
+  dom.targetSizeSlider.value = String(clamped);
+
+  const mid = Math.round((min + max) / 2);
+  if (dom.sliderMinLabel) dom.sliderMinLabel.textContent = `${min} MB`;
+  if (dom.sliderMidLabel) dom.sliderMidLabel.textContent = `${mid} MB`;
+  if (dom.sliderMaxLabel) dom.sliderMaxLabel.textContent = `${max} MB`;
+}
+
+/**
+ * 同步快捷按鈕、滑桿與數字輸入框狀態
+ */
+function syncSizeControls(targetMB, { source = 'chip' } = {}) {
+  if (targetMB && Number.isFinite(targetMB) && targetMB > 0) {
+    if (source !== 'input') {
+      dom.targetSizeInput.value = String(targetMB);
+    }
+    if (source !== 'slider' && dom.targetSizeSlider) {
+      const min = Number(dom.targetSizeSlider.min) || 1;
+      const max = Number(dom.targetSizeSlider.max) || 200;
+      const clamped = Math.min(max, Math.max(min, targetMB));
+      dom.targetSizeSlider.value = String(clamped);
+    }
+    if (dom.sliderValueBadge) {
+      dom.sliderValueBadge.textContent = t('sliderActive', { sizeMB: targetMB });
+    }
+    updateActiveChip(targetMB);
+  } else {
+    if (source !== 'input') {
+      dom.targetSizeInput.value = '';
+    }
+    if (dom.sliderValueBadge) {
+      dom.sliderValueBadge.textContent = t('sliderAuto');
+    }
+    updateActiveChip('');
   }
 }
 
@@ -242,6 +321,7 @@ function handleFileSelection(file) {
 
   if (!isSupportedVideoFile(file)) {
     selectedFile = null;
+    syncSliderBoundsForFile(null);
     renderSelectedFileMeta();
     dom.startBtn.disabled = true;
     setProgress(0, t('statusWaiting'));
@@ -250,6 +330,7 @@ function handleFileSelection(file) {
   }
 
   selectedFile = file;
+  syncSliderBoundsForFile(file);
   renderSelectedFileMeta();
   dom.startBtn.disabled = false;
   setProgress(0, t('statusReady'));
@@ -293,6 +374,7 @@ for (const btn of document.querySelectorAll('[data-lang]')) {
     applyDomTranslations(document);
     renderEngineBadge();
     renderSelectedFileMeta();
+    syncSizeControls(getParsedTargetSizeMB(), { source: 'input' });
     if (!isCompressing) {
       dom.statusText.textContent = selectedFile ? t('statusReady') : t('statusWaiting');
     }
@@ -316,15 +398,38 @@ async function initCapabilities() {
 dom.quickSizeGroup.addEventListener('click', (e) => {
   const btn = e.target.closest('.chip-btn');
   if (!btn) return;
-  const val = btn.dataset.sizeMb || '';
-  dom.targetSizeInput.value = val;
-  if (val) dom.presetSelect.value = 'compact';
-  updateActiveChip(val);
+
+  if (btn.dataset.customSize) {
+    const val = Number(dom.targetSizeSlider?.value) || 20;
+    dom.presetSelect.value = 'compact';
+    syncSizeControls(val, { source: 'chip' });
+    dom.targetSizeInput.focus();
+    refreshPreFlightRisk();
+    return;
+  }
+
+  const raw = btn.dataset.sizeMb || '';
+  if (raw) {
+    dom.presetSelect.value = 'compact';
+    syncSizeControls(Number(raw), { source: 'chip' });
+  } else {
+    syncSizeControls(null, { source: 'chip' });
+  }
   refreshPreFlightRisk();
 });
 
+dom.targetSizeSlider?.addEventListener('input', () => {
+  const val = Number(dom.targetSizeSlider.value);
+  if (Number.isFinite(val) && val > 0) {
+    dom.presetSelect.value = 'compact';
+    syncSizeControls(val, { source: 'slider' });
+    refreshPreFlightRisk();
+  }
+});
+
 dom.targetSizeInput.addEventListener('input', () => {
-  updateActiveChip(dom.targetSizeInput.value.trim());
+  const parsed = getParsedTargetSizeMB();
+  syncSizeControls(parsed, { source: 'input' });
   refreshPreFlightRisk();
 });
 
@@ -495,4 +600,5 @@ window.addEventListener('beforeunload', () => {
 });
 
 applyDomTranslations(document);
+syncSliderBoundsForFile(null);
 initCapabilities();
