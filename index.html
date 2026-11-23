@@ -10,8 +10,8 @@
   <!-- 🔍 Google Search Console 驗證與基礎 SEO -->
   <meta name="google-site-verification" content="JZ5UohX-CcP_fQV0_DI9VadkKY4ZoTTkUifL88-fIcY">
   <title>SlimVid · 片纖瘦 — 100% 本地零上傳影片壓縮器</title>
-  <meta name="description" content="SlimVid · 片纖瘦是一款 100% 瀏覽器本地運行的零上傳影片壓縮器。支援 iPhone 4K MOV / MP4 一鍵壓縮至 20MB / 25MB / 50MB 學校與電郵上限，嚴格 CSP 技術鎖死外部連線，影片絕不離開你的裝置。">
-  <meta name="keywords" content="SlimVid, 片纖瘦, 影片壓縮, 手機壓縮影片, iPhone MOV 轉 MP4, 零上傳影片壓縮, eClass 影片上限, WebCodecs, 本地壓片, 免費影片壓縮器">
+  <meta name="description" content="SlimVid · 片纖瘦是一款 100% 瀏覽器本地運行的零上傳影片壓縮器。支援 iPhone 4K MOV / MP4 一鍵壓縮至指定 MB 大小，嚴格 CSP 技術鎖死外部連線，影片絕不離開你的裝置。">
+  <meta name="keywords" content="SlimVid, 片纖瘦, 影片壓縮, 手機壓縮影片, iPhone MOV 轉 MP4, 零上傳影片壓縮, WebCodecs, 本地壓片, 免費影片壓縮器">
   <meta name="author" content="Jacky Law">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://jackylawck.github.io/SlimVid/">
@@ -20,7 +20,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://jackylawck.github.io/SlimVid/">
   <meta property="og:title" content="SlimVid · 片纖瘦 — 100% 本地零上傳影片壓縮器">
-  <meta property="og:description" content="手機幾百 MB iPhone 影片一鍵壓至 20MB / 50MB 交功課！全程瀏覽器本地運算、零伺服器上傳、嚴格 CSP 私隱保護。">
+  <meta property="og:description" content="手機幾百 MB 影片一鍵壓縮至指定大小！全程瀏覽器本地運算、零伺服器上傳、嚴格 CSP 私隱保護。">
   <meta property="og:image" content="https://jackylawck.github.io/SlimVid/SlimVid512icon.png">
   <meta property="og:image:width" content="512">
   <meta property="og:image:height" content="512">
@@ -86,17 +86,17 @@
     </section>
 
     <section class="card" aria-labelledby="options-heading">
-      <h2 id="options-heading" class="section-title" data-i18n="step2Title">2. 壓縮設定（學校 / 平台上限）</h2>
+      <h2 id="options-heading" class="section-title" data-i18n="step2Title">2. 壓縮設定</h2>
 
       <div class="quick-limits">
-        <span class="quick-limits-label" data-i18n="quickLimitsLabel">學校 / 常用上限快捷設定：</span>
+        <span class="quick-limits-label" data-i18n="quickLimitsLabel">快捷目標大小：</span>
         <div class="chip-group" id="quickSizeGroup">
-          <button type="button" class="chip-btn" data-size-mb="20" data-i18n="chip20">20 MB（學校常用）</button>
-          <button type="button" class="chip-btn" data-size-mb="25" data-i18n="chip25">25 MB（電郵上限）</button>
-          <button type="button" class="chip-btn" data-size-mb="50" data-i18n="chip50">50 MB（eClass）</button>
+          <button type="button" class="chip-btn" data-size-mb="20" data-i18n="chip20">20 MB</button>
+          <button type="button" class="chip-btn" data-size-mb="25" data-i18n="chip25">25 MB</button>
+          <button type="button" class="chip-btn" data-size-mb="50" data-i18n="chip50">50 MB</button>
           <button type="button" class="chip-btn" data-size-mb="100" data-i18n="chip100">100 MB</button>
-          <button type="button" class="chip-btn is-active" data-size-mb="" data-i18n="chipUnlimited">不限（按畫質）</button>
-          <button type="button" class="chip-btn" data-custom-size="1" data-i18n="chipCustom">自訂 MB</button>
+          <button type="button" class="chip-btn is-active" data-size-mb="" data-i18n="chipUnlimited">不限</button>
+          <button type="button" class="chip-btn" data-custom-size="1" data-i18n="chipCustom">自訂</button>
         </div>
       </div>
 
@@ -127,7 +127,7 @@
           <select id="presetSelect">
             <option value="high" data-i18n="presetHigh">高畫質（體積約減 30–40%）</option>
             <option value="balanced" selected data-i18n="presetBalanced">平衡模式（體積約減 50–60%）</option>
-            <option value="compact" data-i18n="presetCompact">極限壓縮（適合功課上傳 / 720p 上限）</option>
+            <option value="compact" data-i18n="presetCompact">極限壓縮（體積最細 / 720p 上限）</option>
           </select>
         </div>
         <div class="field">
