@@ -1,11 +1,53 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="zh-HK" prefix="og: https://ogp.me/ns#">
 <head>
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; media-src 'self' blob:; style-src 'self'; img-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none';">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(), gyroscope=()">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="referrer" content="no-referrer">
+
+  <!-- 🔍 Google Search Console 驗證與基礎 SEO -->
+  <meta name="google-site-verification" content="JZ5UohX-CcP_fQV0_DI9VadkKY4ZoTTkUifL88-fIcY">
   <title>SlimVid · 片纖瘦 — 100% 本地零上傳影片壓縮器</title>
+  <meta name="description" content="SlimVid · 片纖瘦是一款 100% 瀏覽器本地運行的零上傳影片壓縮器。支援 iPhone 4K MOV / MP4 一鍵壓縮至 20MB / 25MB / 50MB 學校與電郵上限，嚴格 CSP 技術鎖死外部連線，影片絕不離開你的裝置。">
+  <meta name="keywords" content="SlimVid, 片纖瘦, 影片壓縮, 手機壓縮影片, iPhone MOV 轉 MP4, 零上傳影片壓縮, eClass 影片上限, WebCodecs, 本地壓片, 免費影片壓縮器">
+  <meta name="author" content="Jacky Law">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://jackylawck.github.io/SlimVid/">
+
+  <!-- 🌐 Open Graph / WhatsApp / Facebook / LinkedIn 社交分享卡片 -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jackylawck.github.io/SlimVid/">
+  <meta property="og:title" content="SlimVid · 片纖瘦 — 100% 本地零上傳影片壓縮器">
+  <meta property="og:description" content="手機幾百 MB iPhone 影片一鍵壓至 20MB / 50MB 交功課！全程瀏覽器本地運算、零伺服器上傳、嚴格 CSP 私隱保護。">
+  <meta property="og:image" content="https://jackylawck.github.io/SlimVid/SlimVid512icon.png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:image:alt" content="SlimVid 片纖瘦零上傳影片壓縮器標誌">
+  <meta property="og:locale" content="zh_HK">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:site_name" content="SlimVid · 片纖瘦">
+
+  <!-- 🐦 Twitter / X Cards -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SlimVid · 片纖瘦 — 100% Local Zero-Upload Video Compressor">
+  <meta name="twitter:description" content="Compress large iPhone MOV & MP4 videos right inside your browser with WebCodecs. Zero uploads, strict CSP privacy.">
+  <meta name="twitter:image" content="https://jackylawck.github.io/SlimVid/SlimVid512icon.png">
+
+  <!-- 📱 PWA 與手機「加入主畫面」設定 -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./SlimVid192icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./SlimVid512icon.png">
+  <link rel="apple-touch-icon" href="./SlimVid192icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="SlimVid 片纖瘦">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="SlimVid · 片纖瘦">
+  <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./src/ui/app.js"></script>
 </head>
@@ -54,6 +96,28 @@
           <button type="button" class="chip-btn" data-size-mb="50" data-i18n="chip50">50 MB（eClass）</button>
           <button type="button" class="chip-btn" data-size-mb="100" data-i18n="chip100">100 MB</button>
           <button type="button" class="chip-btn is-active" data-size-mb="" data-i18n="chipUnlimited">不限（按畫質）</button>
+          <button type="button" class="chip-btn" data-custom-size="1" data-i18n="chipCustom">自訂 MB</button>
+        </div>
+      </div>
+
+      <div class="slider-field" id="sizeSliderBox">
+        <div class="slider-header">
+          <label for="targetSizeSlider" data-i18n="sliderLabel">拖動滑桿微調目標大小</label>
+          <span class="slider-value" id="sliderValueBadge" data-i18n="sliderAuto">目前：不限（跟隨壓縮模式）</span>
+        </div>
+        <input
+          type="range"
+          id="targetSizeSlider"
+          class="range-slider"
+          min="2"
+          max="200"
+          step="1"
+          value="25"
+        >
+        <div class="slider-ticks">
+          <span id="sliderMinLabel">2 MB</span>
+          <span id="sliderMidLabel">100 MB</span>
+          <span id="sliderMaxLabel">200 MB</span>
         </div>
       </div>
 
@@ -73,7 +137,7 @@
             id="targetSizeInput"
             min="1"
             max="4096"
-            step="1"
+            step="any"
             data-i18n-placeholder="targetSizePlaceholder"
             placeholder="留空按模式自動壓縮"
           >
@@ -109,6 +173,16 @@
         <div id="logBox" class="log-box" role="log" aria-live="polite"></div>
       </div>
     </section>
+
+    <footer class="footer">
+      <nav class="footer-links" aria-label="Compliance and Legal">
+        <a href="https://github.com/jackylawck/SlimVid/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" data-i18n="linkPrivacy">私隱與非 AI 聲明</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/jackylawck/SlimVid/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer" data-i18n="linkSecurity">資訊安全政策</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/jackylawck/SlimVid/blob/main/TERMS.md" target="_blank" rel="noopener noreferrer" data-i18n="linkTerms">使用條款與免責</a>
+      </nav>
+    </footer>
   </main>
 </body>
 </html>
