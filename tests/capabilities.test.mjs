@@ -69,24 +69,24 @@ test('detectCapabilities 順序探測硬編、支援 HEVC 8/10-bit 與 sessionSt
       Worker: function MockWorker() {},
       OffscreenCanvas: function MockOffscreenCanvas() {},
       VideoFrame: function MockVideoFrame() {},
-      VideoDecoder: {
-        async isConfigSupported({ codec }) {
+      VideoDecoder: class MockVideoDecoder {
+        static async isConfigSupported({ codec }) {
           return {
             supported:
               codec === 'avc1.42E01E' ||
               codec === 'hvc1.1.6.L93.B0' ||
               codec === 'hvc1.2.4.L120.B0',
           };
-        },
+        }
       },
-      VideoEncoder: {
-        async isConfigSupported() {
+      VideoEncoder: class MockVideoEncoder {
+        static async isConfigSupported() {
           concurrent++;
           maxConcurrent = Math.max(maxConcurrent, concurrent);
           await new Promise((r) => setTimeout(r, 5));
           concurrent--;
           return { supported: true };
-        },
+        }
       },
     },
     async () => {
