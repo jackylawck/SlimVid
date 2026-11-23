@@ -104,6 +104,27 @@ async function selectEncoderConfig({ codec, width, height, bitrate, framerate })
   return null;
 }
 
+function attachDequeueListener(codecObj, handler) {
+  if (!codecObj) return () => {};
+  if (typeof codecObj.addEventListener === 'function') {
+    codecObj.addEventListener('dequeue', handler, { once: true });
+    return () => {
+      try {
+        codecObj.removeEventListener('dequeue', handler);
+      } catch (_) {}
+    };
+  }
+  if ('ondequeue' in codecObj) {
+    codecObj.ondequeue = handler;
+    return () => {
+      if (codecObj.ondequeue === handler) {
+        codecObj.ondequeue = null;
+      }
+    };
+  }
+  return () => {};
+}
+
 async function waitForBackpressure({
   decoder,
   encoder,
@@ -135,19 +156,22 @@ async function waitForBackpressure({
 
     await new Promise((resolve) => {
       let settled = false;
+      let detachDecode = () => {};
+      let detachEncode = () => {};
+
       const done = () => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        if (decoder) decoder.removeEventListener('dequeue', done);
-        if (encoder) encoder.removeEventListener('dequeue', done);
+        detachDecode();
+        detachEncode();
         if (signal) signal.removeEventListener('abort', done);
         if (ackWakeup === done) ackWakeup = null;
         resolve();
       };
 
-      if (decodeFull && decoder) decoder.addEventListener('dequeue', done, { once: true });
-      if (encodeFull && encoder) encoder.addEventListener('dequeue', done, { once: true });
+      if (decodeFull && decoder) detachDecode = attachDequeueListener(decoder, done);
+      if (encodeFull && encoder) detachEncode = attachDequeueListener(encoder, done);
       if (diskFull) ackWakeup = done;
       if (signal) signal.addEventListener('abort', done, { once: true });
 
@@ -478,6 +502,23 @@ async function runCompressionJob(jobId, { file, plan: userOptions, capabilities,
         const canvas = new OffscreenCanvas(targetW, targetH);
         const ctx = canvas.getContext('2d', { alpha: false });
 
+        let useBitmapTransfer = false;
+        const createFrameFromCanvas = (timestamp, duration) => {
+          if (!useBitmapTransfer) {
+            try {
+              return new VideoFrame(canvas, { timestamp, duration });
+            } catch (_) {
+              useBitmapTransfer = true;
+            }
+          }
+          const bitmap = canvas.transferToImageBitmap();
+          try {
+            return new VideoFrame(bitmap, { timestamp, duration });
+          } finally {
+            bitmap.close();
+          }
+        };
+
         const shouldDecimate = estimatedFps > targetFps + 5;
         const minFrameGapUs = shouldDecimate ? Math.round((1_000_000 / targetFps) * 0.85) : 0;
         const nominalFrameDurUs = Math.round(1_000_000 / targetFps);
@@ -535,11 +576,7 @@ async function runCompressionJob(jobId, { file, plan: userOptions, capabilities,
 
               closeSourceFrame();
 
-              const resizedFrame = new VideoFrame(canvas, {
-                timestamp: ts,
-                duration: dur,
-              });
-
+              const resizedFrame = createFrameFromCanvas(ts, dur);
               const keyFrame = encodedSamples % keyFrameInterval === 0;
               encoder.encode(resizedFrame, { keyFrame });
               resizedFrame.close();
