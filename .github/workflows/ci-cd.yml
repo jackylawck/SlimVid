@@ -96,6 +96,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       pages: write
       id-token: write
@@ -134,6 +135,9 @@ jobs:
         uses: actions/upload-pages-artifact@v4
         with:
           path: "_site"
+
+      - name: Wait for artifact indexing
+        run: sleep 5
 
       - name: Deploy to GitHub Pages
         id: deployment
