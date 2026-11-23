@@ -22,6 +22,7 @@
   <meta property="og:title" content="SlimVid · 片纖瘦 — 100% 本地零上傳影片壓縮器">
   <meta property="og:description" content="手機幾百 MB 影片一鍵壓縮至指定大小！全程瀏覽器本地運算、零伺服器上傳、嚴格 CSP 私隱保護。">
   <meta property="og:image" content="https://jackylawck.github.io/SlimVid/SlimVid512icon.png">
+  <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="512">
   <meta property="og:image:height" content="512">
   <meta property="og:image:alt" content="SlimVid 片纖瘦零上傳影片壓縮器標誌">
@@ -34,6 +35,7 @@
   <meta name="twitter:title" content="SlimVid · 片纖瘦 — 100% Local Zero-Upload Video Compressor">
   <meta name="twitter:description" content="Compress large iPhone MOV & MP4 videos right inside your browser with WebCodecs. Zero uploads, strict CSP privacy.">
   <meta name="twitter:image" content="https://jackylawck.github.io/SlimVid/SlimVid512icon.png">
+  <meta name="twitter:image:alt" content="SlimVid zero-upload video compressor icon">
 
   <!-- 📱 PWA 與手機「加入主畫面」設定 -->
   <link rel="manifest" href="./manifest.webmanifest">
@@ -43,7 +45,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SlimVid 片纖瘦">
-  <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="SlimVid · 片纖瘦">
   <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
@@ -57,14 +58,14 @@
       <div class="header-top">
         <h1 data-i18n="appTitle">SlimVid · 片纖瘦</h1>
         <div class="lang-switch" role="group" aria-label="Language">
-          <button type="button" class="lang-btn" data-lang="zh-HK">繁中</button>
-          <button type="button" class="lang-btn" data-lang="en">EN</button>
+          <button type="button" class="lang-btn" data-lang="zh-HK" lang="zh-HK">繁中</button>
+          <button type="button" class="lang-btn" data-lang="en" lang="en">EN</button>
         </div>
       </div>
       <p class="subtitle" data-i18n="appSubtitle">
         100% 瀏覽器本地運算，CSP 技術鎖死外部連線，影片絕不上傳任何伺服器。
       </p>
-      <div id="engineBadge" class="engine-badge" role="status" data-i18n="engineProbing">
+      <div id="engineBadge" class="engine-badge" role="status" aria-live="polite" data-i18n="engineProbing">
         正在探測瀏覽器加速能力...
       </div>
     </header>
@@ -135,6 +136,8 @@
           <input
             type="number"
             id="targetSizeInput"
+            inputmode="decimal"
+            autocomplete="off"
             min="1"
             max="4096"
             step="any"
