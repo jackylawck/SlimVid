@@ -4,10 +4,19 @@
  */
 
 const STORAGE_KEY = 'slimvid_lang_v1';
+const DEFAULT_LANG = 'zh-HK';
 export const SUPPORTED_LANGS = Object.freeze(['zh-HK', 'en']);
 
-export const DICTIONARY = Object.freeze({
-  'zh-HK': Object.freeze({
+function deepFreeze(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  for (const val of Object.values(obj)) {
+    if (val && typeof val === 'object') deepFreeze(val);
+  }
+  return Object.freeze(obj);
+}
+
+export const DICTIONARY = deepFreeze({
+  'zh-HK': {
     pageTitle: 'SlimVid · 片纖瘦 — 100% 本地零上傳影片壓縮器',
     appTitle: 'SlimVid · 片纖瘦',
     appSubtitle: '100% 瀏覽器本地運算，CSP 技術鎖死外部連線，影片絕不上傳任何伺服器。',
@@ -34,6 +43,10 @@ export const DICTIONARY = Object.freeze({
     chip50: '50 MB（eClass）',
     chip100: '100 MB',
     chipUnlimited: '不限（按畫質）',
+    chipCustom: '自訂 MB',
+    sliderLabel: '拖動滑桿微調目標大小',
+    sliderAuto: '目前：不限（跟隨壓縮模式）',
+    sliderActive: '目標上限：{sizeMB} MB',
     presetLabel: '壓縮模式',
     presetHigh: '高畫質（體積約減 30–40%）',
     presetBalanced: '平衡模式（體積約減 50–60%）',
@@ -86,9 +99,13 @@ export const DICTIONARY = Object.freeze({
     errHevcTooLarge: '此裝置無法直接硬件解碼 iPhone HEVC 影片，且檔案超過 150 MB 兜底上限；請改用桌面版 Chrome/Edge 或新款 iPhone Safari。',
     errProtocolMismatch: '頁面版本已更新，請重新整理瀏覽器後再試。',
     errUnknown: '壓縮發生未知錯誤',
-  }),
 
-  en: Object.freeze({
+    linkPrivacy: '私隱與非 AI 聲明',
+    linkSecurity: '資訊安全政策',
+    linkTerms: '使用條款與免責',
+  },
+
+  en: {
     pageTitle: 'SlimVid — 100% Local Zero-Upload Video Compressor',
     appTitle: 'SlimVid',
     appSubtitle: '100% in-browser local compression. Strict CSP blocks external requests so your video never leaves your device.',
@@ -115,6 +132,10 @@ export const DICTIONARY = Object.freeze({
     chip50: '50 MB (eClass)',
     chip100: '100 MB',
     chipUnlimited: 'Auto (By Quality)',
+    chipCustom: 'Custom MB',
+    sliderLabel: 'Drag slider to set target size',
+    sliderAuto: 'Current: Auto (by preset)',
+    sliderActive: 'Target limit: {sizeMB} MB',
     presetLabel: 'Compression Preset',
     presetHigh: 'High Quality (~30-40% smaller)',
     presetBalanced: 'Balanced (~50-60% smaller)',
@@ -167,9 +188,15 @@ export const DICTIONARY = Object.freeze({
     errHevcTooLarge: 'This device cannot hardware-decode iPhone HEVC directly and the file exceeds the 150 MB fallback limit. Use desktop Chrome/Edge or a newer iPhone.',
     errProtocolMismatch: 'App updated in background. Please reload this page and try again.',
     errUnknown: 'An unknown error occurred during compression.',
-  }),
+
+    linkPrivacy: 'Privacy & Non-AI Notice',
+    linkSecurity: 'Security Policy',
+    linkTerms: 'Terms & Disclaimer',
+  },
 });
 
+const TOKEN_PATTERN = /\{([a-zA-Z0-9_]+)\}/g;
+const listeners = new Set();
 let currentLang = detectInitialLang();
 
 function detectInitialLang() {
@@ -178,8 +205,18 @@ function detectInitialLang() {
     if (SUPPORTED_LANGS.includes(saved)) return saved;
   } catch (_) {}
 
-  const browserLang = String(globalThis.navigator?.language || '').toLowerCase();
-  return browserLang.startsWith('zh') ? 'zh-HK' : 'en';
+  const nav = globalThis.navigator;
+  const candidates = Array.isArray(nav?.languages) && nav.languages.length > 0
+    ? nav.languages
+    : [nav?.language];
+
+  for (const raw of candidates) {
+    const code = String(raw || '').toLowerCase();
+    if (!code) continue;
+    if (code.startsWith('zh')) return 'zh-HK';
+    if (code.startsWith('en')) return 'en';
+  }
+  return DEFAULT_LANG;
 }
 
 export function getLang() {
@@ -187,23 +224,33 @@ export function getLang() {
 }
 
 export function setLang(lang) {
-  if (!SUPPORTED_LANGS.includes(lang)) return currentLang;
+  if (!SUPPORTED_LANGS.includes(lang) || lang === currentLang) return currentLang;
   currentLang = lang;
   try {
     globalThis.localStorage?.setItem(STORAGE_KEY, lang);
   } catch (_) {}
+  for (const fn of listeners) {
+    try {
+      fn(currentLang);
+    } catch (_) {}
+  }
   return currentLang;
 }
 
+export function onLangChange(listener) {
+  if (typeof listener !== 'function') return () => {};
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 export function t(key, vars = null, lang = currentLang) {
-  const dict = DICTIONARY[lang] || DICTIONARY['zh-HK'];
-  let text = dict[key] ?? DICTIONARY['zh-HK'][key] ?? key;
-  if (vars && typeof vars === 'object') {
-    for (const [k, v] of Object.entries(vars)) {
-      text = text.replaceAll(`{${k}}`, String(v));
-    }
-  }
-  return text;
+  const dict = DICTIONARY[lang] || DICTIONARY[DEFAULT_LANG];
+  const template = dict[key] ?? DICTIONARY[DEFAULT_LANG][key] ?? key;
+  if (!vars || typeof vars !== 'object') return template;
+
+  return template.replace(TOKEN_PATTERN, (match, tokenKey) =>
+    Object.prototype.hasOwnProperty.call(vars, tokenKey) ? String(vars[tokenKey]) : match
+  );
 }
 
 export function applyDomTranslations(root = document) {
@@ -221,6 +268,11 @@ export function applyDomTranslations(root = document) {
   for (const el of root.querySelectorAll('[data-i18n-placeholder]')) {
     const key = el.getAttribute('data-i18n-placeholder');
     if (key) el.setAttribute('placeholder', t(key));
+  }
+
+  for (const el of root.querySelectorAll('[data-i18n-aria]')) {
+    const key = el.getAttribute('data-i18n-aria');
+    if (key) el.setAttribute('aria-label', t(key));
   }
 
   for (const btn of root.querySelectorAll('[data-lang]')) {
