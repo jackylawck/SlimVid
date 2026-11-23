@@ -7,7 +7,7 @@ import { detectCapabilities } from './capabilities.js';
 import { planCompression, FFMPEG_MAX_SAFE_BYTES } from './planner.js';
 import { PIPELINE_STAGE, runWorkerJob } from './protocol.js';
 
-const WEBCODECS_WORKER_URL = new URL('../engines/webcodecs.worker.js', import.meta.url);
+const WEBCODECS_WORKER_URL = new URL('../engines/webcodecs.worker.js?v=20261123b', import.meta.url);
 
 function createJobId() {
   return `job_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -33,7 +33,6 @@ function probeVideoElementMetadata(file) {
         width: video.videoWidth || 1280,
         height: video.videoHeight || 720,
         duration: Number.isFinite(video.duration) ? video.duration : 0,
-        // 保守預設 hasAudio: true（無音軌時僅多扣少量碼率預算，有音軌時唔會漏扣超標）
         hasAudio: true,
         canCopyAudio: false,
         videoCodec: null,
@@ -161,7 +160,6 @@ export class CompressionOrchestrator {
     const startTime = performance.now();
     const meta = fallbackMeta || (await probeVideoElementMetadata(file));
 
-    // meta.width/height 皆為正向顯示尺寸，rotation 必須為 0
     const plan = planCompression({
       width: meta.width,
       height: meta.height,
