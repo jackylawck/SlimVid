@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; media-src 'self' blob:; style-src 'self'; img-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <title>SlimVid · 片纖瘦 — 100% 本地零上傳影片壓縮器</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./src/ui/app.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div class="header-top">
+        <h1 data-i18n="appTitle">SlimVid · 片纖瘦</h1>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" class="lang-btn" data-lang="zh-HK">繁中</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+      </div>
+      <p class="subtitle" data-i18n="appSubtitle">
+        100% 瀏覽器本地運算，CSP 技術鎖死外部連線，影片絕不上傳任何伺服器。
+      </p>
+      <div id="engineBadge" class="engine-badge" role="status" data-i18n="engineProbing">
+        正在探測瀏覽器加速能力...
+      </div>
+    </header>
+
+    <section class="card" aria-labelledby="upload-heading">
+      <h2 id="upload-heading" class="section-title" data-i18n="step1Title">1. 選擇影片</h2>
+      <label class="file-dropzone" for="fileInput" id="dropzone">
+        <input
+          type="file"
+          id="fileInput"
+          class="file-input"
+          accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
+        >
+        <span class="dropzone-title" id="fileLabel" data-i18n="dropzoneTitle">點擊選擇或拖放影片到此處</span>
+        <span class="dropzone-meta" id="fileMeta" data-i18n="dropzoneMeta">支援 iPhone MOV / MP4 / WebM / MKV（全程本地處理）</span>
+      </label>
+      <p id="iosFilesTip" class="tip-text hidden" data-i18n="iosFilesTip"></p>
+      <div id="riskBanner" class="banner hidden" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="options-heading">
+      <h2 id="options-heading" class="section-title" data-i18n="step2Title">2. 壓縮設定（學校 / 平台上限）</h2>
+
+      <div class="quick-limits">
+        <span class="quick-limits-label" data-i18n="quickLimitsLabel">學校 / 常用上限快捷設定：</span>
+        <div class="chip-group" id="quickSizeGroup">
+          <button type="button" class="chip-btn" data-size-mb="20" data-i18n="chip20">20 MB（學校常用）</button>
+          <button type="button" class="chip-btn" data-size-mb="25" data-i18n="chip25">25 MB（電郵上限）</button>
+          <button type="button" class="chip-btn" data-size-mb="50" data-i18n="chip50">50 MB（eClass）</button>
+          <button type="button" class="chip-btn" data-size-mb="100" data-i18n="chip100">100 MB</button>
+          <button type="button" class="chip-btn is-active" data-size-mb="" data-i18n="chipUnlimited">不限（按畫質）</button>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="presetSelect" data-i18n="presetLabel">壓縮模式</label>
+          <select id="presetSelect">
+            <option value="high" data-i18n="presetHigh">高畫質（體積約減 30–40%）</option>
+            <option value="balanced" selected data-i18n="presetBalanced">平衡模式（體積約減 50–60%）</option>
+            <option value="compact" data-i18n="presetCompact">極限壓縮（適合功課上傳 / 720p 上限）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="targetSizeInput" data-i18n="targetSizeLabel">目標大小（MB，選填）</label>
+          <input
+            type="number"
+            id="targetSizeInput"
+            min="1"
+            max="4096"
+            step="1"
+            data-i18n-placeholder="targetSizePlaceholder"
+            placeholder="留空按模式自動壓縮"
+          >
+        </div>
+      </div>
+
+      <label class="checkbox-row" for="highPrivacyToggle">
+        <input type="checkbox" id="highPrivacyToggle">
+        <span>
+          <strong data-i18n="highPrivacyTitle">高私隱記憶體清理模式</strong>
+          <small data-i18n="highPrivacyDesc">（FFmpeg 兜底完成後強制終止 Worker 釋放 Wasm Heap，下次壓縮需重載約 10MB 核心）</small>
+        </span>
+      </label>
+
+      <div class="actions">
+        <button type="button" id="startBtn" class="btn btn-primary" disabled data-i18n="startBtn">開始壓縮</button>
+        <button type="button" id="cancelBtn" class="btn btn-danger hidden" data-i18n="cancelBtn">中止並釋放記憶體</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="status-heading">
+      <h2 id="status-heading" class="section-title" data-i18n="step3Title">3. 處理進度</h2>
+      <div id="wakeLockNotice" class="banner banner-warn hidden" role="status" data-i18n="wakeLockNotice"></div>
+      <div class="progress-header">
+        <span id="statusText" data-i18n="statusWaiting">等待選擇影片</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <progress id="progressBar" value="0" max="100"></progress>
+      <div id="resultSummary" class="banner banner-ok hidden" role="status"></div>
+      <div id="downloadArea" class="download-area hidden"></div>
+      <div class="log-wrapper">
+        <div class="log-title" data-i18n="logTitle">執行日誌</div>
+        <div id="logBox" class="log-box" role="log" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
